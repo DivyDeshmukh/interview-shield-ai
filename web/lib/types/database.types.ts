@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      interviews: {
+        Row: {
+          candidate_id: string | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          meeting_room_id: string | null
+          recruiter_id: string | null
+          scheduled_at: string
+          started_at: string | null
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          candidate_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          meeting_room_id?: string | null
+          recruiter_id?: string | null
+          scheduled_at: string
+          started_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          candidate_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          meeting_room_id?: string | null
+          recruiter_id?: string | null
+          scheduled_at?: string
+          started_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          id: string
+          role: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

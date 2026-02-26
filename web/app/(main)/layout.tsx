@@ -1,5 +1,6 @@
 import AuthProtected from "@/components/auth/AuthProtected";
 import Navbar from "@/components/layout/Navbar";
+import { RoleProvider } from "@/lib/context/RoleContext";
 
 export default function MainLayout({
   children,
@@ -8,10 +9,12 @@ export default function MainLayout({
 }) {
   return (
     <AuthProtected>
-      <div className="min-h-screen bg-gray-100">
-        <Navbar />
-        <main>{children}</main>
-      </div>
+      <RoleProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <main>{children}</main>
+        </div>
+      </RoleProvider>
     </AuthProtected>
   );
 }
