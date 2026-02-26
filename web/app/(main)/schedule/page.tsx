@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ChevronDown } from "lucide-react";
+import Input from "@/components/layout/Input";
+import { Button } from "@/components/layout/Button";
 
 const JOB_ROLES = [
   "Frontend Engineer",
@@ -14,28 +18,40 @@ const JOB_ROLES = [
   "UX Designer",
 ];
 
-const inputClass =
-  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 transition bg-white";
+const scheduleSchema = z.object({
+  candidateName: z.string().min(1, "Candidate name is required"),
+  candidateEmail: z.email("Enter a valid email address"),
+  role: z.string().min(1, "Please select a role"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+});
+
+type ScheduleFormValues = z.infer<typeof scheduleSchema>;
 
 export default function SchedulePage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    candidateName: "",
-    candidateEmail: "",
-    role: "",
-    date: "",
-    time: "",
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ScheduleFormValues>({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+      candidateName: "",
+      candidateEmail: "",
+      role: "",
+      date: "",
+      time: "",
+    },
   });
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
+  const selectedRole = watch("role");
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(data: ScheduleFormValues) {
     // TODO: call API to schedule interview
+    console.log("Schedule interview:", data);
     router.push("/");
   }
 
@@ -46,21 +62,20 @@ export default function SchedulePage() {
           Schedule New Interview
         </h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
           {/* Candidate Name */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">
               Candidate Name
             </label>
-            <input
+            <Input
               type="text"
-              name="candidateName"
-              value={form.candidateName}
-              onChange={handleChange}
               placeholder="e.g. Jane Doe"
-              className={inputClass}
-              required
+              {...register("candidateName")}
             />
+            {errors.candidateName && (
+              <p className="text-xs text-red-500">{errors.candidateName.message}</p>
+            )}
           </div>
 
           {/* Candidate Email */}
@@ -68,85 +83,77 @@ export default function SchedulePage() {
             <label className="text-sm font-medium text-gray-700">
               Candidate Email
             </label>
-            <input
+            <Input
               type="email"
-              name="candidateEmail"
-              value={form.candidateEmail}
-              onChange={handleChange}
               placeholder="jane@example.com"
-              className={inputClass}
-              required
+              {...register("candidateEmail")}
             />
+            {errors.candidateEmail && (
+              <p className="text-xs text-red-500">{errors.candidateEmail.message}</p>
+            )}
           </div>
 
-          {/* Role */}
+          {/* Role — native select styled to match Input */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Role</label>
             <div className="relative">
               <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className={`${inputClass} appearance-none cursor-pointer pr-10 ${
-                  form.role ? "text-gray-900" : "text-gray-400"
+                {...register("role")}
+                className={`w-full rounded-xl border border-gray-200 px-3 py-2.5 focus:border-blue-400 focus:outline-none bg-white appearance-none cursor-pointer pr-10 text-sm ${
+                  selectedRole ? "text-black" : "text-gray-400"
                 }`}
-                required
               >
                 <option value="" disabled>
                   Select a role
                 </option>
                 {JOB_ROLES.map((r) => (
-                  <option key={r} value={r} className="text-gray-900">
+                  <option key={r} value={r} className="text-black">
                     {r}
                   </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
+            {errors.role && (
+              <p className="text-xs text-red-500">{errors.role.message}</p>
+            )}
           </div>
 
           {/* Date + Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className={inputClass}
-                required
-              />
+              <Input type="date" {...register("date")} />
+              {errors.date && (
+                <p className="text-xs text-red-500">{errors.date.message}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">Time</label>
-              <input
-                type="time"
-                name="time"
-                value={form.time}
-                onChange={handleChange}
-                className={inputClass}
-                required
-              />
+              <Input type="time" {...register("time")} />
+              {errors.time && (
+                <p className="text-xs text-red-500">{errors.time.message}</p>
+              )}
             </div>
           </div>
 
           {/* Buttons */}
           <div className="flex gap-3 mt-2">
-            <button
+            <Button
               type="submit"
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition"
+              disabled={isSubmitting}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: "#2563eb" }}
             >
-              Schedule Interview
-            </button>
-            <button
+              {isSubmitting ? "Scheduling..." : "Schedule Interview"}
+            </Button>
+            <Button
               type="button"
               onClick={() => router.back()}
-              className="px-8 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 cursor-pointer hover:bg-gray-50 transition"
+              className="px-8 py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 cursor-pointer hover:bg-gray-50"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>
