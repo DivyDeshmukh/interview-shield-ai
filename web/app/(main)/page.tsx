@@ -1,7 +1,11 @@
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <h1>Welcome to interview shield AI</h1>
-    </div>
-  );
+"use client";
+
+import CandidateDashboard from "@/components/dashboard/CandidateDashboard";
+import RecruiterDashboard from "@/components/dashboard/RecruiterDashboard";
+import { useRole } from "@/lib/context/RoleContext";
+
+export default function DashboardPage() {
+  const { role } = useRole();
+
+  return role === "recruiter" ? <RecruiterDashboard /> : <CandidateDashboard />;
 }
