@@ -15,7 +15,8 @@ export default function AuthProtected({
   useEffect(() => {
     getCurrentUser().then(({ user }) => {
       if (!user) {
-        router.replace("/login");
+        router.replace("/");
+        setLoading(false);
       } else {
         setLoading(false);
       }
