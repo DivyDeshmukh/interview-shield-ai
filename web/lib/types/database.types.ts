@@ -14,78 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      interviews: {
+      bookmarks: {
         Row: {
-          candidate_id: string | null
           created_at: string | null
-          ended_at: string | null
           id: string
-          meeting_room_id: string | null
-          recruiter_id: string | null
-          scheduled_at: string
-          started_at: string | null
-          status: string | null
           title: string | null
+          url: string
+          user_id: string
         }
         Insert: {
-          candidate_id?: string | null
           created_at?: string | null
-          ended_at?: string | null
           id?: string
-          meeting_room_id?: string | null
-          recruiter_id?: string | null
-          scheduled_at: string
-          started_at?: string | null
-          status?: string | null
           title?: string | null
+          url: string
+          user_id: string
         }
         Update: {
-          candidate_id?: string | null
           created_at?: string | null
-          ended_at?: string | null
           id?: string
-          meeting_room_id?: string | null
-          recruiter_id?: string | null
-          scheduled_at?: string
-          started_at?: string | null
-          status?: string | null
           title?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interviews_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interviews_recruiter_id_fkey"
-            columns: ["recruiter_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          company_name: string | null
-          created_at: string | null
-          id: string
-          role: string
-        }
-        Insert: {
-          company_name?: string | null
-          created_at?: string | null
-          id: string
-          role: string
-        }
-        Update: {
-          company_name?: string | null
-          created_at?: string | null
-          id?: string
-          role?: string
+          url?: string
+          user_id?: string
         }
         Relationships: []
       }
