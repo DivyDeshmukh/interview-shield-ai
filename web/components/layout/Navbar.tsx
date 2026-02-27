@@ -1,10 +1,11 @@
 "use client";
 
-import { signOut } from "@/lib/services/auth";
+import { signOut, getCurrentUser, switchProfileRole, getProfile } from "@/lib/services/auth";
+import { deleteRecruiterData, deleteCandidateData } from "@/lib/services/interviews";
 import { useRole, type Role } from "@/lib/context/RoleContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Shield, ArrowLeftRight } from "lucide-react";
+import { Shield, ArrowLeftRight, Loader2, User, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
 const NAV_ITEMS: Record<Role, { label: string; href: string }[]> = {
@@ -20,15 +21,31 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export default function Navbar() {
   const { role, setRole } = useRole();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [fullName, setFullName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
+    getCurrentUser().then(({ user }) => {
+      if (!user) return;
+      setAvatarUrl(user.user_metadata?.avatar_url ?? null);
+      getProfile(user.id).then(({ data }) => {
+        if (data) setFullName(data.full_name);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
         setDropdownOpen(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
+        setUserMenuOpen(false);
     }
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
@@ -39,10 +56,19 @@ export default function Navbar() {
     router.replace("/login");
   }
 
-  function handleConfirmSwitch() {
+  async function handleConfirmSwitch() {
     const next: Role = role === "candidate" ? "recruiter" : "candidate";
-    // TODO: call API to delete role-specific data before switching
+    setIsSwitching(true);
+
+    const { user } = await getCurrentUser();
+    if (user) {
+      if (role === "recruiter") await deleteRecruiterData(user.id);
+      else await deleteCandidateData(user.id);
+      await switchProfileRole(user.id, next);
+    }
+
     setRole(next);
+    setIsSwitching(false);
     setShowConfirm(false);
   }
 
@@ -90,28 +116,54 @@ export default function Navbar() {
             {dropdownOpen && (
               <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-43.75 z-40">
                 <button
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    setShowConfirm(true);
-                  }}
+                  onClick={() => { setDropdownOpen(false); setShowConfirm(true); }}
                   className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
                 >
                   Switch to{" "}
-                  <span className="font-semibold text-gray-900">
-                    {capitalize(otherRole)}
-                  </span>
+                  <span className="font-semibold text-gray-900">{capitalize(otherRole)}</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Sign Out */}
-          <button
-            onClick={handleSignOut}
-            className="text-sm font-medium text-gray-700 hover:text-gray-900 transition cursor-pointer"
-          >
-            Sign Out
-          </button>
+          {/* User menu */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className="flex items-center gap-2 cursor-pointer select-none"
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <User className="w-4 h-4 text-blue-600" />
+                )}
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                {fullName ?? "Account"}
+              </span>
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg py-1 w-44 z-40">
+                <Link
+                  href="/profile"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  <Settings className="w-4 h-4 text-gray-400" />
+                  Profile Settings
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -147,10 +199,12 @@ export default function Navbar() {
               </button>
               <button
                 onClick={handleConfirmSwitch}
-                className="px-4 py-2 text-sm font-semibold text-white rounded-lg transition cursor-pointer hover:opacity-90"
+                disabled={isSwitching}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: "#2563eb" }}
               >
-                Yes, Switch Role
+                {isSwitching && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {isSwitching ? "Switching..." : "Yes, Switch Role"}
               </button>
             </div>
           </div>
