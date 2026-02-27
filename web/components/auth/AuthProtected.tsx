@@ -13,14 +13,12 @@ export default function AuthProtected({
   const router = useRouter();
 
   useEffect(() => {
-    getCurrentUser().then(({ user }) => {
-      if (!user) {
-        router.replace("/");
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    });
+    getCurrentUser()
+      .then(({ user }) => {
+        if (!user) router.replace("/login");
+        else setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [router]);
 
   if (loading) {

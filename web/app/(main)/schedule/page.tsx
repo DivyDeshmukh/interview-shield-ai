@@ -1,12 +1,20 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2, User, X } from "lucide-react";
+import toast from "react-hot-toast";
 import Input from "@/components/layout/Input";
 import { Button } from "@/components/layout/Button";
+import { getCurrentUser } from "@/lib/services/auth";
+import {
+  searchCandidateByEmail,
+  scheduleInterview,
+  type CandidateResult,
+} from "@/lib/services/interviews";
 
 const JOB_ROLES = [
   "Frontend Engineer",
@@ -19,8 +27,7 @@ const JOB_ROLES = [
 ];
 
 const scheduleSchema = z.object({
-  candidateName: z.string().min(1, "Candidate name is required"),
-  candidateEmail: z.email("Enter a valid email address"),
+  candidateId: z.string().min(1, "Please search and select a candidate"),
   role: z.string().min(1, "Please select a role"),
   date: z.string().min(1, "Date is required"),
   time: z.string().min(1, "Time is required"),
@@ -31,27 +38,94 @@ type ScheduleFormValues = z.infer<typeof scheduleSchema>;
 export default function SchedulePage() {
   const router = useRouter();
 
+  const [searchEmail, setSearchEmail] = useState("");
+  const [searchResults, setSearchResults] = useState<CandidateResult[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateResult | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
   const {
     register,
     handleSubmit,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: {
-      candidateName: "",
-      candidateEmail: "",
-      role: "",
-      date: "",
-      time: "",
-    },
+    defaultValues: { candidateId: "", role: "", date: "", time: "" },
   });
 
   const selectedRole = watch("role");
 
+  // Debounced search
+  useEffect(() => {
+    if (searchEmail.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const { data, error } = await searchCandidateByEmail(searchEmail);
+      setIsSearching(false);
+
+      if (error) {
+        toast.error("Failed to search candidates.");
+        return;
+      }
+      setSearchResults((data as CandidateResult[]) ?? []);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchEmail]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  function handleSelectCandidate(candidate: CandidateResult) {
+    setSelectedCandidate(candidate);
+    setValue("candidateId", candidate.id, { shouldValidate: true });
+    setSearchEmail("");
+    setSearchResults([]);
+    setShowDropdown(false);
+  }
+
+  function handleRemoveCandidate() {
+    setSelectedCandidate(null);
+    setValue("candidateId", "", { shouldValidate: false });
+  }
+
   async function onSubmit(data: ScheduleFormValues) {
-    // TODO: call API to schedule interview
-    console.log("Schedule interview:", data);
+    const { user } = await getCurrentUser();
+    if (!user) {
+      toast.error("You must be logged in to schedule an interview.");
+      return;
+    }
+
+    const scheduledAt = `${data.date}T${data.time}:00`;
+
+    const { error } = await scheduleInterview({
+      title: data.role,
+      scheduledAt,
+      recruiterId: user.id,
+      candidateId: data.candidateId,
+    });
+
+    if (error) {
+      toast.error(error.message || "Failed to schedule interview.");
+      return;
+    }
+
+    toast.success("Interview scheduled successfully!");
     router.push("/");
   }
 
@@ -63,37 +137,90 @@ export default function SchedulePage() {
         </h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-          {/* Candidate Name */}
+
+          {/* Candidate search */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">
-              Candidate Name
+              Candidate
             </label>
-            <Input
-              type="text"
-              placeholder="e.g. Jane Doe"
-              {...register("candidateName")}
-            />
-            {errors.candidateName && (
-              <p className="text-xs text-red-500">{errors.candidateName.message}</p>
+
+            {selectedCandidate ? (
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedCandidate.full_name ?? "—"}
+                    </p>
+                    <p className="text-xs text-gray-500">{selectedCandidate.email}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCandidate}
+                  className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative" ref={searchRef}>
+                <Input
+                  type="email"
+                  placeholder="Search candidate by email..."
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  onFocus={() => setShowDropdown(true)}
+                />
+
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  </div>
+                )}
+
+                {showDropdown && searchEmail.length >= 3 && !isSearching && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg z-20 overflow-hidden">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((candidate) => (
+                        <button
+                          key={candidate.id}
+                          type="button"
+                          onMouseDown={() => handleSelectCandidate(candidate)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left cursor-pointer"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-gray-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {candidate.full_name ?? "—"}
+                            </p>
+                            <p className="text-xs text-gray-500">{candidate.email}</p>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3">
+                        <p className="text-sm text-gray-500">
+                          No registered candidate found with this email.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <input type="hidden" {...register("candidateId")} />
+            {errors.candidateId && (
+              <p className="text-xs text-red-500">{errors.candidateId.message}</p>
             )}
           </div>
 
-          {/* Candidate Email */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Candidate Email
-            </label>
-            <Input
-              type="email"
-              placeholder="jane@example.com"
-              {...register("candidateEmail")}
-            />
-            {errors.candidateEmail && (
-              <p className="text-xs text-red-500">{errors.candidateEmail.message}</p>
-            )}
-          </div>
-
-          {/* Role — native select styled to match Input */}
+          {/* Role */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Role</label>
             <div className="relative">
@@ -103,13 +230,9 @@ export default function SchedulePage() {
                   selectedRole ? "text-black" : "text-gray-400"
                 }`}
               >
-                <option value="" disabled>
-                  Select a role
-                </option>
+                <option value="" disabled>Select a role</option>
                 {JOB_ROLES.map((r) => (
-                  <option key={r} value={r} className="text-black">
-                    {r}
-                  </option>
+                  <option key={r} value={r} className="text-black">{r}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -155,6 +278,7 @@ export default function SchedulePage() {
               Cancel
             </Button>
           </div>
+
         </form>
       </div>
     </div>
