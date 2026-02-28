@@ -120,14 +120,14 @@ export default function RecruiterDashboard() {
                           const diff = new Date(interview.scheduled_at).getTime() - now.getTime();
                           const h = Math.floor(diff / 3_600_000);
                           const m = Math.floor((diff % 3_600_000) / 60_000);
-                          const startsIn = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                          const startsIn = h > 0 ? (m > 0 ? `${h}h ${m} min` : `${h}h`) : (m < 1 ? "1 min" : `${m} min`);
                           return (
                             <div
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-gray-500 w-full justify-center"
                               style={{ background: "#F3F4F6" }}
                             >
                               <Lock className="w-3.5 h-3.5 shrink-0" />
-                              Starts in {startsIn} + 1
+                              Starts in {startsIn}
                             </div>
                           );
                         })()

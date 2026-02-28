@@ -25,7 +25,8 @@ function getTimeUntil(scheduledAt: string, nowMs: number) {
   if (diff <= 0) return null;
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  if (h > 0) return m > 0 ? `${h}h ${m} min` : `${h}h`;
+  return m < 1 ? "1 min" : `${m} min`;
 }
 
 function canJoinNow(scheduledAt: string, nowMs: number) {
@@ -120,7 +121,7 @@ export default function CandidateDashboard() {
                               style={{ background: "#F3F4F6" }}
                             >
                               <Lock className="w-3.5 h-3.5" />
-                              Starts in {startsIn + 1} 
+                              Starts in {startsIn} 
                             </div>
                           )}
                           <button
