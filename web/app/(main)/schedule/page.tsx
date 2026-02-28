@@ -111,7 +111,8 @@ export default function SchedulePage() {
       return;
     }
 
-    const scheduledAt = `${data.date}T${data.time}:00`;
+    // Construct as local time then convert to UTC ISO string so Supabase stores the right time
+    const scheduledAt = new Date(`${data.date}T${data.time}:00`).toISOString();
 
     const { error } = await scheduleInterview({
       title: data.role,
