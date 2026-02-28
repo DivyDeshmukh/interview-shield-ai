@@ -24,7 +24,7 @@ function getTimeUntil(scheduledAt: string, nowMs: number) {
   const diff = new Date(scheduledAt).getTime() - nowMs;
   if (diff <= 0) return null;
   const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const m = Math.ceil((diff % 3_600_000) / 60_000);
   if (h > 0) return m > 0 ? `${h}h ${m} min` : `${h}h`;
   return m < 1 ? "1 min" : `${m} min`;
 }
