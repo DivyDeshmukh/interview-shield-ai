@@ -119,7 +119,7 @@ export default function RecruiterDashboard() {
                         (() => {
                           const diff = new Date(interview.scheduled_at).getTime() - now.getTime();
                           const h = Math.floor(diff / 3_600_000);
-                          const m = Math.floor((diff % 3_600_000) / 60_000);
+                          const m = Math.ceil((diff % 3_600_000) / 60_000);
                           const startsIn = h > 0 ? (m > 0 ? `${h}h ${m} min` : `${h}h`) : (m < 1 ? "1 min" : `${m} min`);
                           return (
                             <div
