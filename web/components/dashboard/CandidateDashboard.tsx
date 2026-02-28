@@ -2,6 +2,7 @@
 
 import { Clock, Lock, Video } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/services/auth";
 import { getCandidateInterviews } from "@/lib/services/interviews";
 
@@ -19,23 +20,25 @@ function formatDateTime(scheduledAt: string) {
   return `${dateStr} · ${timeStr}`;
 }
 
-function getTimeUntil(scheduledAt: string) {
-  const diff = new Date(scheduledAt).getTime() - Date.now();
+function getTimeUntil(scheduledAt: string, nowMs: number) {
+  const diff = new Date(scheduledAt).getTime() - nowMs;
   if (diff <= 0) return null;
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  if (h > 0) return m > 0 ? `${h}h ${m} min` : `${h}h`;
+  return m < 1 ? "1 min" : `${m} min`;
 }
 
-function canJoinNow(scheduledAt: string) {
-  const diff = new Date(scheduledAt).getTime() - Date.now();
-  return diff <= 15 * 60 * 1000;
+function canJoinNow(scheduledAt: string, nowMs: number) {
+  return nowMs >= new Date(scheduledAt).getTime();
 }
 
 export default function CandidateDashboard() {
+  const router = useRouter();
   const [upcoming, setUpcoming] = useState<Interview[]>([]);
   const [completed, setCompleted] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     async function load() {
@@ -50,6 +53,12 @@ export default function CandidateDashboard() {
       setLoading(false);
     }
     load();
+  }, []);
+
+  // Tick every 10s so join button unlocks automatically
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 10_000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -74,8 +83,9 @@ export default function CandidateDashboard() {
             ) : (
               <div className="flex flex-col gap-4">
                 {upcoming.map((interview) => {
-                  const joinable = canJoinNow(interview.scheduled_at);
-                  const startsIn = getTimeUntil(interview.scheduled_at);
+                  const nowMs = now.getTime();
+                  const joinable = canJoinNow(interview.scheduled_at, nowMs);
+                  const startsIn = getTimeUntil(interview.scheduled_at, nowMs);
                   return (
                     <div
                       key={interview.id}
@@ -95,8 +105,10 @@ export default function CandidateDashboard() {
 
                       {joinable ? (
                         <button
+                          type="button"
                           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition"
                           style={{ background: "#2563eb" }}
+                          onClick={() => router.push(`/interview/${interview.id}`)}
                         >
                           <Video className="w-4 h-4" />
                           Join Interview
@@ -109,7 +121,7 @@ export default function CandidateDashboard() {
                               style={{ background: "#F3F4F6" }}
                             >
                               <Lock className="w-3.5 h-3.5" />
-                              Starts in {startsIn}
+                              Starts in {startsIn} 
                             </div>
                           )}
                           <button
