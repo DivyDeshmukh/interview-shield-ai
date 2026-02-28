@@ -62,3 +62,32 @@ export async function scheduleInterview(input: {
 
     return supabase.from("interviews").insert(row).select().single();
 }
+
+export async function getInterviewById(id: string) {
+    return supabase
+        .from("interviews")
+        .select("*, recruiter:profiles!interviews_recruiter_id_fkey(full_name, email), candidate:profiles!interviews_candidate_id_fkey(full_name, email)")
+        .eq("id", id)
+        .single();
+}
+
+export async function startInterview(id: string) {
+    return supabase
+        .from("interviews")
+        .update({
+            status: "ongoing",
+            started_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+}
+
+export async function endInterview(id: string) {
+    return supabase
+        .from("interviews")
+        .update({
+            status: "completed",
+            ended_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+}
+

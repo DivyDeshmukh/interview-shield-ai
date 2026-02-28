@@ -14,27 +14,178 @@ export type Database = {
   }
   public: {
     Tables: {
-      bookmarks: {
+      ai_events: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          event_type: string
+          id: string
+          interview_id: string
+          timestamp_in_call: number | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          interview_id: string
+          timestamp_in_call?: number | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          interview_id?: string
+          timestamp_in_call?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_events_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_summary: {
+        Row: {
+          cheat_score: number
+          created_at: string | null
+          id: string
+          interview_id: string
+          summary: string
+        }
+        Insert: {
+          cheat_score: number
+          created_at?: string | null
+          id?: string
+          interview_id: string
+          summary: string
+        }
+        Update: {
+          cheat_score?: number
+          created_at?: string | null
+          id?: string
+          interview_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_summary_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interviews: {
+        Row: {
+          candidate_id: string | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          meeting_room_id: string | null
+          recruiter_id: string | null
+          scheduled_at: string
+          started_at: string | null
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          candidate_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          meeting_room_id?: string | null
+          recruiter_id?: string | null
+          scheduled_at: string
+          started_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          candidate_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          meeting_room_id?: string | null
+          recruiter_id?: string | null
+          scheduled_at?: string
+          started_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          role: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      signaling_messages: {
         Row: {
           created_at: string | null
           id: string
-          title: string | null
-          url: string
-          user_id: string
+          payload: Json
+          room_id: string
+          sender_id: string
+          type: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          title?: string | null
-          url: string
-          user_id: string
+          payload: Json
+          room_id: string
+          sender_id: string
+          type: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          title?: string | null
-          url?: string
-          user_id?: string
+          payload?: Json
+          room_id?: string
+          sender_id?: string
+          type?: string
         }
         Relationships: []
       }
@@ -43,7 +194,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_role: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

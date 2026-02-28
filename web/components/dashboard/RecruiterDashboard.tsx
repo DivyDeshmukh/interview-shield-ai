@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Play, BarChart2, CalendarDays, Info } from "lucide-react";
+import { Clock, Play, BarChart2, CalendarDays, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "@/lib/services/auth";
@@ -26,6 +26,7 @@ export default function RecruiterDashboard() {
   const [upcoming, setUpcoming] = useState<Interview[]>([]);
   const [completed, setCompleted] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     async function load() {
@@ -40,6 +41,12 @@ export default function RecruiterDashboard() {
       setLoading(false);
     }
     load();
+  }, []);
+
+  // Tick every 10s so cards unlock automatically when scheduled time arrives
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 10_000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -96,21 +103,36 @@ export default function RecruiterDashboard() {
                       </span>
                     </div>
 
-                    <div
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500"
-                      style={{ background: "#F3F4F6" }}
-                    >
-                      <Info className="w-4 h-4 shrink-0 text-gray-400" />
-                      Interview not started yet
-                    </div>
-
-                    <button
-                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition"
-                      style={{ background: "#2563eb" }}
-                    >
-                      <Play className="w-4 h-4 fill-white stroke-none" />
-                      Start Interview
-                    </button>
+                    {(() => {
+                      const timeReached = now >= new Date(interview.scheduled_at);
+                      return timeReached ? (
+                        <button
+                          type="button"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer hover:opacity-90 transition"
+                          style={{ background: "#2563eb" }}
+                          onClick={() => router.push(`/interview/${interview.id}`)}
+                        >
+                          <Play className="w-4 h-4 fill-white stroke-none" />
+                          Start Interview
+                        </button>
+                      ) : (
+                        (() => {
+                          const diff = new Date(interview.scheduled_at).getTime() - now.getTime();
+                          const h = Math.floor(diff / 3_600_000);
+                          const m = Math.floor((diff % 3_600_000) / 60_000);
+                          const startsIn = h > 0 ? (m > 0 ? `${h}h ${m} min` : `${h}h`) : (m < 1 ? "1 min" : `${m} min`);
+                          return (
+                            <div
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-gray-500 w-full justify-center"
+                              style={{ background: "#F3F4F6" }}
+                            >
+                              <Lock className="w-3.5 h-3.5 shrink-0" />
+                              Starts in {startsIn}
+                            </div>
+                          );
+                        })()
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
