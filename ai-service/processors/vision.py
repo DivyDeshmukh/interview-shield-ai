@@ -17,7 +17,7 @@ class CandidateFrameProcessor:
 
     def __init__(self, interview_id: str):
         self.interview_id = interview_id
-        self.last_event_time: dict[str, float] = {}
+        self._last_event_time: dict[str, float] = {}
         self._start_time: float = time.time()
 
         # Vision Agents SDK - CloudDetectionProcessor
