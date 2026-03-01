@@ -66,8 +66,8 @@ Summary:"""
             model="gemini-2.0-flash",
             api_key=os.environ["GEMINI_API_KEY"],
         )
-        response = await llm.send_message(prompt)  # ← fix: was .complete()
-        return response.text.strip()               # ← fix: was response.strip()
+        response = await llm.send_message(prompt)  
+        return response.text.strip()               
     except Exception as e:
         logger.error(f"Gemini summary generation failed: {e}")
         return f"Integrity score: {cheat_score}/1.0. Automated summary unavailable."
