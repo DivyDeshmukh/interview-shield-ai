@@ -2,11 +2,9 @@ fastapi
 uvicorn[standard]
 python-dotenv
 supabase
-opencv-python
+opencv-python-headless
 numpy
 websockets
 python-multipart
-vision-agents
-vision-agents-plugins-moondream
-vision-agents-plugins-gemini
+vision-agents[moondream,gemini]
 Pillow
