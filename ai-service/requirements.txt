@@ -6,5 +6,5 @@ opencv-python
 numpy
 websockets
 python-multipart
-vision-agents[moondream, gemini]
-
+vision-agents[moondream,gemini]
+Pillow
