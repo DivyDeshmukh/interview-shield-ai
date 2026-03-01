@@ -63,7 +63,7 @@ Summary:"""
 
     try:
         llm = gemini.LLM(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             api_key=os.environ["GEMINI_API_KEY"],
         )
         response = await llm.send_message(prompt)  
