@@ -77,5 +77,10 @@ export function useSignalling(
         [roomId, myUserId]
     );
 
-    return { sendSignal };
+    const clearMessages = useCallback(async () => {
+        if (!roomId) return;
+        await supabase.from("signaling_messages").delete().eq("room_id", roomId);
+    }, [roomId]);
+
+    return { sendSignal, clearMessages };
 }
