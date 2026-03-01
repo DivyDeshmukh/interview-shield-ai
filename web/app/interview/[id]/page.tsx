@@ -67,7 +67,7 @@ export default function InterviewPage() {
     });
 
     // Signalling hook
-    const { sendSignal } = useSignalling(interview?.meeting_room_id ?? null, userId, {
+    const { sendSignal, clearMessages } = useSignalling(interview?.meeting_room_id ?? null, userId, {
         // Recruiter receives this
         onAnswer: async (answer) => {
             await handleAnswer(answer);
@@ -230,6 +230,7 @@ export default function InterviewPage() {
                     if (updated.status === "completed") {
                         setPageState("ended");
                         endCall();
+                        clearMessages();
                     }
                 },
             )
@@ -295,6 +296,7 @@ export default function InterviewPage() {
         if (!interview) return;
 
         endCall();
+        await clearMessages();
 
         if (myRole === "recruiter") {
             await endInterview(interview.id);
@@ -559,7 +561,7 @@ export default function InterviewPage() {
                     </button>
                 ) : (
                     <button
-                        onClick={() => { endCall(); setPageState("ended"); }}
+                        onClick={() => { endCall(); clearMessages(); setPageState("ended"); }}
                         className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full transition-colors"
                     >
                         <PhoneOff className="w-5 h-5" />
