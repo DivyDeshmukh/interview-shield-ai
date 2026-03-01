@@ -7,4 +7,4 @@ numpy
 websockets
 python-multipart
 vision-agents[moondream, gemini]
-
+Pillow
