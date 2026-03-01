@@ -40,6 +40,10 @@ export default function InterviewPage() {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
+    // AI monitoring WebSocket (candidate only)
+    const wsRef = useRef<WebSocket | null>(null);
+    const captureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     // sendSignal ref - solves the circular dependency between useWebRTC and useSignalling
     const sendSignalRef = useRef<
         | ((
@@ -275,6 +279,43 @@ export default function InterviewPage() {
         };
     }, [interview?.id, myRole]);
 
+    // Candidate: open WebSocket to AI service and stream video frames during the call
+    useEffect(() => {
+        if (pageState !== "calling" || myRole !== "candidate" || !interview) return;
+
+        const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000";
+        const wsUrl = aiServiceUrl.replace(/^http/, "ws") + `/ws/video/${interview.id}`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            const interval = setInterval(() => {
+                const video = localVideoRef.current;
+                if (!video || video.readyState < 2 || ws.readyState !== WebSocket.OPEN) return;
+
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                ctx.drawImage(video, 0, 0);
+                const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+                const base64 = dataUrl.split(",")[1];
+                ws.send(JSON.stringify({ frame: base64 }));
+            }, 1500);
+            captureIntervalRef.current = interval;
+        };
+
+        return () => {
+            if (captureIntervalRef.current) {
+                clearInterval(captureIntervalRef.current);
+                captureIntervalRef.current = null;
+            }
+            ws.close();
+            wsRef.current = null;
+        };
+    }, [pageState, myRole, interview?.id]);
+
     // Recruiter: start Interview
     async function handleStartInterview() {
         if (!interview) return;
@@ -300,6 +341,9 @@ export default function InterviewPage() {
 
         if (myRole === "recruiter") {
             await endInterview(interview.id);
+            // Trigger AI analysis (non-blocking — don't await so interview end isn't delayed)
+            const aiServiceUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000";
+            fetch(`${aiServiceUrl}/analyse-interview/${interview.id}`, { method: "POST" }).catch(() => {});
         }
         setPageState("ended");
     }
@@ -569,6 +613,7 @@ export default function InterviewPage() {
                     </button>
                 )}
             </footer>
+            <Toaster position="bottom-right" />
         </div>
     )
 }
